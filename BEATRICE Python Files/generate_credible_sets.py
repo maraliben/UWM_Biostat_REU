@@ -201,29 +201,25 @@ def abf( z, ld, memo, mean_memo, n_sub, sigma_sq, p0, ind, S):
     
         U =  n_sub*torch.diag(sigma_sq*cc)[:,ind]
         U = U[ind,:]
+        
         V = ld[ind,:]
         V = V[:,ind]
+        
         Z = z[ind,:]
-            
-        #inv            = torch.inverse(gpu(torch.eye(len(ind))) + torch.mm(V,U))
-            
-        #sigma_inv      = torch.mm(torch.mm(U,inv),V)
-            
-        #sigma          = gpu(torch.eye(len(ind))) + torch.mm(V,U)
-            
-        #sigma2         = torch.matmul(torch.matmul(z.T, sigma_inv),S)/2
         
         prior = 1 - p0
         prior[ind] = p0[ind]
         
-        second = torch.logdet(torch.linalg.multi_dot([V, U, V]))
+        #the log of the mean term in the likelihood
+        log_mean = torch.logdet(torch.linalg.multi_dot([V, U, V]))
 
-        third_inner = torch.inverse(torch.linalg.multi_dot([V, U, V]))
+        #the sigma matrix of the likelihood inverted
+        sigma_inv = torch.inverse(torch.linalg.multi_dot([V, U, V]))
 
-        third = torch.linalg.multi_dot([Z.T, third_inner, Z])
+        #the log of the exponential term in the likelihood
+        log_exp = torch.linalg.multi_dot([Z.T, sigma_inv, Z])
 
-        ex = -0.5 * (second + third) + torch.sum(torch.log(prior)) - mean_memo
-        #ex = -torch.logdet(sigma)/2 + sigma2 + torch.sum(torch.log(prior)) - mean_memo
+        ex = -0.5 * (log_mean + log_exp) + torch.sum(torch.log(prior)) - mean_memo
         res =  min(torch.tensor(10**15),torch.exp(min(torch.log(torch.tensor(10**15)),ex)))
     
     
