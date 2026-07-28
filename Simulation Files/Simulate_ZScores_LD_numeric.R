@@ -1,13 +1,12 @@
-#setwd("")
+#setwd("$SIM_DIR")
 library(sim1000G)
 library(gplots)
 library(VariantAnnotation)
-library(dplyr)
 library(vcfR)
 
 #load(""path for genotype_10000_R file"")
 genotype_10000 <- genotype
-new_geno <- sample_n(as.data.frame(genotype_10000), 5000)
+new_geno <- genotype_10000[sample(nrow(genotype_10000), size = 5000),]
 new_geno <- new_geno[, sample(ncol(new_geno), size = 1000)]
 n <- 5000
 m <- ncol(new_geno)
