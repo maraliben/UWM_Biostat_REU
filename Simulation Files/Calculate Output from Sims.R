@@ -1,15 +1,16 @@
 install.packages("PRROC")
 require(PRROC)
 
-data_results <- matrix(0, nrow =  4 * 6 * 5 * 10, ncol = 9)
+data_results <- matrix(0, nrow =  4 * 6 * 5 * 20, ncol = 9)
 index <- 1
 colnames(data_results) <- c("d", "omega", "p", "iteration", "AUPRC", "Coverage", "Power", "Size", "FDR")
 for (d in c(1,4,8,12)) {
   for (omega in c(0.1,0.2,0.4,0.5,0.7,0.8)) {
     for (p in c(0.1,0.3,0.5,0.7,0.9)) {
-      for (i in 1:10) {
+      for (i in 1:20) {
         data_results[index, 1:4] <- c(d, omega, p, i)
-        dir <- paste0("/Users/simonkopischke/Desktop/REU Biostats Project/new_model/sim_results_d", d, "_w", omega, "_p", p, "_", i)
+        dir <- paste0("$RESULTS_DIR /sim_results_d", d, "_w", omega, "_p", p, "_", i)
+        ###### use in the case that some sims didn't properly run
         # if (!file.exists(dir)) {
         #   next
         # }
@@ -18,13 +19,13 @@ for (d in c(1,4,8,12)) {
         # }
         causal_variants <- scan(paste0(dir, "/sim1000G_cat_causalvar.txt"), sep = " ", quiet = TRUE)
         pip <- read.csv(paste0(dir, "/pip.csv"))
-        if (file.size(paste0(dir, "/credible_set.txt")) == 0) {
+        if (file.size(paste0(dir, "/credible_set.txt")) == 0) { # if no credible sets are identified
           cred_sets <- matrix(0, nrow = 1, ncol = 1)
           matching <- 0
           sets_with_causal <- 0
         } else {
           cred_sets <- read.table(paste0(dir, "/credible_set.txt"), header = FALSE, sep = " ", fill = TRUE) + 1
-          matching <- sum(unlist(cred_sets) %in% causal_variants)
+          matching <- sum(unlist(cred_sets) %in% causal_variants) # how many causal variants are identified by BEATRICE
           condit_prob <- read.table(paste0(dir, "/conditional_credible_variants_probability.txt"), header = FALSE, sep = " ", fill = TRUE)
           sets_with_causal <- rep(F, dim(cred_sets)[1])
           for (j in 1:dim(cred_sets)[1]) { # number of variants within each credible set
@@ -35,11 +36,6 @@ for (d in c(1,4,8,12)) {
         }
         
         # AUPRC
-        # pip <- pip[na.exclude(unlist(cred_sets)),]
-        # pip_index <- na.exclude(unlist(cred_sets)) %in% causal_variants
-        # pr <- pr.curve(scores.class0=pip[pip_index,2],
-        #                scores.class1=pip[!pip_index,2],
-        #                curve=T)
         pr <- pr.curve(scores.class0=pip[causal_variants,2],
                        scores.class1=pip[-causal_variants,2],
                        curve=T)
@@ -47,11 +43,6 @@ for (d in c(1,4,8,12)) {
         
         # Coverage
         data_results[index, 6] <- sum(sets_with_causal) / dim(cred_sets)[1]
-        # data_results[index, 6] <- mean(na.exclude(unlist(condit_prob)))
-        # data_results[index, 6] <- mean(condit_prob[sets_with_causal,1])
-        # if (is.nan(data_results[index, 6])) {
-        #   data_results[index, 6] <- 0
-        # }
         
         # Power
         data_results[index, 7] <- matching / d
@@ -109,4 +100,4 @@ for (i in 1:(dim(p_graph)[2] - 1)) {
 }
 plot(p_graph[,4], type = "l", xlab = "p", ylab = colnames(p_graph)[4], ylim = c(0,10))
 
-write.table(data_results, file = "/Users/simonkopischke/Desktop/REU Biostats Project/new_model/data_results.txt", row.names = F, sep = " ")
+write.table(data_results, file = "$RESULTS_DIR /data_results.txt", row.names = F, sep = " ")
