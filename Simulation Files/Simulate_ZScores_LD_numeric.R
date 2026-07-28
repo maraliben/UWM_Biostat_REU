@@ -4,7 +4,7 @@ library(gplots)
 library(VariantAnnotation)
 library(vcfR)
 
-#load(""path for genotype_10000_R file"")
+#load("path for genotype_10000_R file")
 genotype_10000 <- genotype
 new_geno <- genotype_10000[sample(nrow(genotype_10000), size = 5000),]
 new_geno <- new_geno[, sample(ncol(new_geno), size = 1000)]
@@ -28,7 +28,7 @@ epsilon <- rnorm(n, mean = 0, sd = sqrt(1 - omega_2))
 
 normalized_y <- as.numeric(sqrt((p*omega_2)/var(g_C)))*g_C + as.numeric(sqrt(((1-p)*omega_2)/(var(g_NC))))*g_NC + epsilon
 normalized_y <- exp(normalized_y) / (1 + exp(normalized_y))
-for (i in 1:n) {
+for (i in 1:n) {# y's must be 0 and 1
   normalized_y[i] <- sample(x = c(0,1), size = 1, prob = c(1 - normalized_y[i], normalized_y[i]))
 }
 
