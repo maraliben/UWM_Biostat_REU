@@ -169,22 +169,28 @@ class finemapper():
 
             #prior effect size scaled by sample size (assumes that all sites have the same variance)
             U =  n_sub*torch.diag(sigma_sq*cc)[:,ind]
-            #filters the ld matrix to only the rows of our selected sites
-            V = ld[ind,:]
+            U = U[ind,:]
 
-            #inverts the identity + V * U; necessary for the covariance matrix of multivariate normal distribution (does not need to change for our purposes)
-            inv            = torch.inverse(gpu(torch.eye(len(ind))) + torch.mm(V,U))
-               
-            sigma_inv      = torch.mm(torch.mm(U,inv),V)
-                
-            sigma          = gpu(torch.eye(len(ind))) + torch.mm(V,U)
-                
-            sigma2         = torch.matmul(torch.matmul(z.T, sigma_inv),self.S)/2
+            #filters the ld matrix to only the rows of our selected sites
+            V = LD[:,ind]
+            V = V[ind,:]
+
+            #filters the Z vector
+            Z = Z[ind,:]
+
+            #the log of the mean term in the likelihood
+            log_mean = torch.logdet(torch.linalg.multi_dot([V, U, V]))
+
+            #the sigma matrix of the likelihood inverted
+            sigma_inv = torch.inverse(torch.linalg.multi_dot([V, U, V]))
+
+            #the log of the exponential term in the likelihood
+            log_exp = torch.linalg.multi_dot([Z.T, sigma_inv, Z])
         
             prior = 1 - p0
             prior[ind] = p0[ind]
         
-            res =  -torch.logdet(sigma)/2 + sigma2 + torch.sum(torch.log(prior)) 
+            res =  -0.5 * (log_mean + log_exp) + torch.sum(torch.log(prior)) 
         
         
             memo[ind_m] = cpu(res).data.numpy()
@@ -253,26 +259,23 @@ class finemapper():
                     self.abf(Z, ld, memo, n_sub, sigma_sq, cc, p_0, K_C, gamma)
                 
                 U =  n_sub*torch.diag(sigma_sq*cc)[:,ind]
+                U = U[ind,:]
+                
+                V = LD[:,ind]
+                V = V[ind,:]
+                
+                Z = Z[ind,:]
 
-                
-                V = LD[ind,:]
+                #the log of the mean term in the likelihood
+                log_mean = torch.logdet(torch.linalg.multi_dot([V, U, V]))
 
-                
-                inv            = torch.inverse(gpu(torch.eye(K_C)) + torch.mm(V,U))
-                
-                sigma_inv      = gpu(torch.eye(M)) - torch.mm(torch.mm(U,inv),V)
-                
-                sigma          = gpu(torch.eye(K_C)) + torch.mm(V,U)
-                
+                #the sigma matrix of the likelihood inverted
+                sigma_inv = torch.inverse(torch.linalg.multi_dot([V, U, V]))
 
-                
-                sigma2         = -torch.matmul(torch.matmul(Z.T, sigma_inv),self.S)/2
-                
+                #the log of the exponential term in the likelihood
+                log_exp = torch.linalg.multi_dot([Z.T, sigma_inv, Z])
 
-                if torch.isnan(torch.logdet(sigma)):
-                    print(torch.logdet(sigma))
-                log_likelihood =  -torch.logdet(sigma)/2 + sigma2
-                            
+                log_likelihood = -0.5 * (log_mean + log_exp)
                 
                 lik_loss += -log_likelihood.squeeze()
 
