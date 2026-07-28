@@ -177,6 +177,9 @@ class finemapper():
 
             #filters the Z vector
             Z = z[ind,:]
+        
+            prior = 1 - p0
+            prior[ind] = p0[ind]
 
             #the log of the mean term in the likelihood
             log_mean = torch.logdet(torch.linalg.multi_dot([V, U, V]))
@@ -186,9 +189,6 @@ class finemapper():
 
             #the log of the exponential term in the likelihood
             log_exp = torch.linalg.multi_dot([Z.T, sigma_inv, Z])
-        
-            prior = 1 - p0
-            prior[ind] = p0[ind]
         
             res =  -0.5 * (log_mean + log_exp) + torch.sum(torch.log(prior)) 
         
